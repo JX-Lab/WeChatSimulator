@@ -37,12 +37,12 @@
 
 				for (i = 0; i < data.data.length; i += 4) {
 					gray = (data.data[i] + data.data[i + 1] + data.data[i + 2]) / 3;
-					if (gray < 80) {
+					if (gray < 120) {
 						data.data[i + 3] = 0;
 						continue;
 					}
 
-					alpha = Math.max(0, Math.min(255, Math.round((gray - 80) / 175 * 255)));
+					alpha = Math.max(0, Math.min(255, Math.round((gray - 120) / 135 * 255)));
 					data.data[i] = 31;
 					data.data[i + 1] = 31;
 					data.data[i + 2] = 31;
@@ -54,7 +54,7 @@
 				for (y = 0; y < canvas.height; y += 1) {
 					for (x = 0; x < canvas.width; x += 1) {
 						p = (y * canvas.width + x) * 4;
-						if (data.data[p + 3] > 24) {
+						if (data.data[p + 3] > 72) {
 							if (x < minX) minX = x;
 							if (y < minY) minY = y;
 							if (x > maxX) maxX = x;
