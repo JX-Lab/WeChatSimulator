@@ -3,27 +3,71 @@
 		return value < 10 ? "0" + value : String(value);
 	}
 
-	function normalizeCallDuration(value) {
+	function clamp(value, min, max) {
+		value = parseInt(value, 10);
+		if (isNaN(value)) value = min;
+		if (value < min) value = min;
+		if (value > max) value = max;
+		return value;
+	}
+
+	function parseCallDurationParts(value) {
 		var raw = String(value == null ? "" : value).trim();
 		var match;
+		var hours;
 		var minutes;
 		var seconds;
+		var total;
 
-		if (!raw) return "";
-
-		if (/^\d+$/.test(raw)) {
-			value = Math.max(0, parseInt(raw, 10));
-			minutes = Math.floor(value / 60);
-			seconds = value % 60;
-			return padCallUnit(minutes) + ":" + padCallUnit(seconds);
+		if (!raw) {
+			return { hours: 0, minutes: 0, seconds: 0 };
 		}
 
-		match = raw.match(/^(\d{1,2}):(\d{1,2})$/);
-		if (!match) return raw;
+		if (/^\d+$/.test(raw)) {
+			total = Math.max(0, parseInt(raw, 10));
+			hours = Math.floor(total / 3600);
+			minutes = Math.floor((total % 3600) / 60);
+			seconds = total % 60;
+			return { hours: hours, minutes: minutes, seconds: seconds };
+		}
 
-		minutes = Math.max(0, parseInt(match[1], 10));
-		seconds = Math.max(0, Math.min(59, parseInt(match[2], 10)));
+		match = raw.match(/^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+		if (!match) {
+			return { hours: 0, minutes: 0, seconds: 32 };
+		}
+
+		if (typeof match[3] !== "undefined") {
+			hours = clamp(match[1], 0, 23);
+			minutes = clamp(match[2], 0, 59);
+			seconds = clamp(match[3], 0, 59);
+		} else {
+			hours = 0;
+			minutes = clamp(match[1], 0, 59);
+			seconds = clamp(match[2], 0, 59);
+		}
+
+		return { hours: hours, minutes: minutes, seconds: seconds };
+	}
+
+	function formatCallDuration(hours, minutes, seconds) {
+		hours = clamp(hours, 0, 23);
+		minutes = clamp(minutes, 0, 59);
+		seconds = clamp(seconds, 0, 59);
+		if (hours > 0) {
+			return padCallUnit(hours) + ":" + padCallUnit(minutes) + ":" + padCallUnit(seconds);
+		}
 		return padCallUnit(minutes) + ":" + padCallUnit(seconds);
+	}
+
+	function getCallStatusText(status, durationText, isMe) {
+		if (status === "connected") {
+			return "通话时长 " + (durationText || "00:32");
+		}
+		if (status === "canceled") return isMe ? "已取消" : "对方已取消";
+		if (status === "rejected") return "已拒绝";
+		if (status === "unanswered") return "无应答";
+		if (status === "failed") return "连接失败";
+		return isMe ? "已取消" : "对方已取消";
 	}
 
 	function ensureSetting(vm, key, value) {
@@ -32,48 +76,116 @@
 		}
 	}
 
+	function normalizeCallStatus(status) {
+		if (status === "missed") return "unanswered";
+		return status || "connected";
+	}
+
+	function normalizeCallSettings(vm) {
+		var hasParts =
+			typeof vm.setting.dialog_call_hours !== "undefined" ||
+			typeof vm.setting.dialog_call_minutes !== "undefined" ||
+			typeof vm.setting.dialog_call_seconds !== "undefined";
+		var parts = hasParts
+			? {
+				hours: clamp(vm.setting.dialog_call_hours, 0, 23),
+				minutes: clamp(vm.setting.dialog_call_minutes, 0, 59),
+				seconds: clamp(vm.setting.dialog_call_seconds, 0, 59)
+			}
+			: parseCallDurationParts(vm.setting.dialog_call_duration || "00:32");
+
+		ensureSetting(vm, "dialog_call_status", "connected");
+		vm.$set(vm.setting, "dialog_call_status", normalizeCallStatus(vm.setting.dialog_call_status));
+		vm.$set(vm.setting, "dialog_call_hours", parts.hours);
+		vm.$set(vm.setting, "dialog_call_minutes", parts.minutes);
+		vm.$set(vm.setting, "dialog_call_seconds", parts.seconds);
+		vm.$set(vm.setting, "dialog_call_duration", formatCallDuration(parts.hours, parts.minutes, parts.seconds));
+	}
+
+	function applyCallDialogMetadata(vm, dialog) {
+		var parts;
+		var durationText;
+
+		if (!dialog.call_mode) vm.$set(dialog, "call_mode", "voice");
+		vm.$set(dialog, "call_status", normalizeCallStatus(dialog.call_status));
+
+		if (
+			typeof dialog.call_hours !== "undefined" ||
+			typeof dialog.call_minutes !== "undefined" ||
+			typeof dialog.call_seconds !== "undefined"
+		) {
+			parts = {
+				hours: clamp(dialog.call_hours, 0, 23),
+				minutes: clamp(dialog.call_minutes, 0, 59),
+				seconds: clamp(dialog.call_seconds, 0, 59)
+			};
+		} else {
+			parts = parseCallDurationParts(dialog.call_duration || dialog.call_duration_text || "00:32");
+		}
+
+		vm.$set(dialog, "call_hours", parts.hours);
+		vm.$set(dialog, "call_minutes", parts.minutes);
+		vm.$set(dialog, "call_seconds", parts.seconds);
+
+		durationText = dialog.call_status === "connected"
+			? formatCallDuration(parts.hours, parts.minutes, parts.seconds)
+			: "";
+
+		vm.$set(dialog, "call_duration", durationText);
+		vm.$set(dialog, "call_duration_text", durationText);
+		vm.$set(dialog, "call_status_text", getCallStatusText(dialog.call_status, durationText, dialog.is_me));
+	}
+
 	function patchExistingCallDialogs(vm) {
 		vm.dialogs.forEach(function (dialog) {
 			if (dialog.type !== "call") return;
-			if (!dialog.call_mode) vm.$set(dialog, "call_mode", "voice");
-			if (!dialog.call_status) vm.$set(dialog, "call_status", "connected");
-			if (!dialog.call_duration && dialog.call_status === "connected") {
-				vm.$set(dialog, "call_duration", "00:32");
-			}
+			applyCallDialogMetadata(vm, dialog);
 		});
 	}
 
 	function attachCallExtension(vm) {
-		if (!vm || vm.__callExtensionReady) return true;
+		if (!vm) return false;
+		if (vm.__callExtensionReady) return true;
 
-		ensureSetting(vm, "dialog_call_status", "connected");
-		ensureSetting(vm, "dialog_call_duration", "00:32");
+		normalizeCallSettings(vm);
 		patchExistingCallDialogs(vm);
 
-		vm.normalizeCallDuration = normalizeCallDuration;
 		vm.addCallDialog = function (mode) {
 			var selectedUser = this.getSelectedUser();
 			var callStatus;
+			var hours;
+			var minutes;
+			var seconds;
 			var callDuration;
 			var dialog;
 
 			if (!selectedUser) return alert("请选择用户"), false;
 
-			callStatus = this.setting.dialog_call_status || "connected";
-			callDuration = callStatus === "connected"
-				? this.normalizeCallDuration(this.setting.dialog_call_duration || "00:32")
-				: "";
+			callStatus = normalizeCallStatus(this.setting.dialog_call_status);
+			hours = clamp(this.setting.dialog_call_hours, 0, 23);
+			minutes = clamp(this.setting.dialog_call_minutes, 0, 59);
+			seconds = clamp(this.setting.dialog_call_seconds, 0, 59);
 
-			if (callStatus === "connected" && !callDuration) {
-				callDuration = "00:32";
+			if (callStatus === "connected" && hours === 0 && minutes === 0 && seconds === 0) {
+				seconds = 32;
+				this.$set(this.setting, "dialog_call_seconds", seconds);
 			}
+
+			callDuration = callStatus === "connected"
+				? formatCallDuration(hours, minutes, seconds)
+				: "";
 
 			dialog = {
 				id: "dialog-" + (new Date).valueOf(),
 				type: "call",
 				call_mode: mode === "video" ? "video" : "voice",
 				call_status: callStatus,
+				call_hours: hours,
+				call_minutes: minutes,
+				call_seconds: seconds,
 				call_duration: callDuration,
+				call_duration_text: callDuration,
+				call_status_text: getCallStatusText(callStatus, callDuration, selectedUser.is_me),
 				is_me: selectedUser.is_me,
 				user_id: selectedUser.id
 			};
