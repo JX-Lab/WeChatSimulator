@@ -2100,20 +2100,21 @@ fieldset[disabled] .radio-custom label {
 .wechat-dialog-call {
     display: inline-flex;
     align-items: center;
+    font-size: 48px;
     min-height: 123px;
     padding: 28px 38px;
     max-width: none
 }
 
 .wechat-dialog-call-icon {
-    width: 40px;
-    height: 40px;
+    width: .84em;
+    height: .84em;
     display: block;
     flex-shrink: 0;
-    margin-right: 16px;
+    margin-right: .33em;
     background-repeat: no-repeat;
     background-position: center;
-    background-size: contain
+    background-size: 100% 100%
 }
 
 .wechat-dialog-call-icon-voice {
@@ -2125,7 +2126,7 @@ fieldset[disabled] .radio-custom label {
 }
 
 .wechat-dialog-call-text {
-    font-size: 48px;
+    font-size: 1em;
     line-height: normal;
     color: #1f1f1f;
     white-space: nowrap;
