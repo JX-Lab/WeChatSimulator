@@ -1,29 +1,102 @@
 (function () {
-	var CALL_ICON_SVG_VIDEO =
-		"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4.2 8.8h10.2a1.7 1.7 0 0 1 1.7 1.7v3a1.7 1.7 0 0 1-1.7 1.7H4.2a1.7 1.7 0 0 1-1.7-1.7v-3a1.7 1.7 0 0 1 1.7-1.7Zm11.8 1.4 4.1-2.3v8.2L16 13.8' fill='none' stroke='%23000' stroke-width='2.1' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E";
-	var CALL_ICON_SVG_VOICE =
-		"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5.2 15.2c1.15-2.2 3.45-3.55 5.95-3.55h1.7c2.5 0 4.8 1.35 5.95 3.55' fill='none' stroke='%23000' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E";
+	var CALL_ICON_SOURCE = {
+		voice: "static/app/images/wechat-call-voice-source.jpg",
+		video: "static/app/images/wechat-call-video-source.jpg"
+	};
+
 	var CALL_ICON_EXPORT = {
 		voice: null,
 		video: null
 	};
+
+	function padCallUnit(value) {
+		return value < 10 ? "0" + value : String(value);
+	}
+
+	function clamp(value, min, max) {
+		value = parseInt(value, 10);
+		if (isNaN(value)) value = min;
+		if (value < min) value = min;
+		if (value > max) value = max;
+		return value;
+	}
 
 	function buildExportCallIcon(mode) {
 		return new Promise(function (resolve, reject) {
 			var img = new Image();
 			var canvas = document.createElement("canvas");
 			var ctx = canvas.getContext("2d");
+			var cropCanvas;
+			var cropCtx;
+			var data;
+			var i;
+			var gray;
+			var x;
+			var y;
+			var p;
+			var minX = Infinity;
+			var minY = Infinity;
+			var maxX = -1;
+			var maxY = -1;
 
 			img.onload = function () {
-				canvas.width = 128;
-				canvas.height = 128;
-				ctx.clearRect(0, 0, canvas.width, canvas.height);
-				ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-				resolve(canvas.toDataURL("image/png"));
+				canvas.width = img.width;
+				canvas.height = img.height;
+				ctx.drawImage(img, 0, 0);
+				data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+				for (i = 0; i < data.data.length; i += 4) {
+					gray = (data.data[i] + data.data[i + 1] + data.data[i + 2]) / 3;
+					if (gray < 85) {
+						data.data[i + 3] = 0;
+					} else {
+						data.data[i] = 0;
+						data.data[i + 1] = 0;
+						data.data[i + 2] = 0;
+						data.data[i + 3] = Math.max(0, Math.min(255, Math.round((gray - 85) / 170 * 255)));
+					}
+				}
+
+				ctx.putImageData(data, 0, 0);
+
+				for (y = 0; y < canvas.height; y += 1) {
+					for (x = 0; x < canvas.width; x += 1) {
+						p = (y * canvas.width + x) * 4;
+						if (data.data[p + 3] > 20) {
+							if (x < minX) minX = x;
+							if (y < minY) minY = y;
+							if (x > maxX) maxX = x;
+							if (y > maxY) maxY = y;
+						}
+					}
+				}
+
+				if (maxX < minX || maxY < minY) {
+					resolve(canvas.toDataURL("image/png"));
+					return;
+				}
+
+				cropCanvas = document.createElement("canvas");
+				cropCanvas.width = maxX - minX + 1;
+				cropCanvas.height = maxY - minY + 1;
+				cropCtx = cropCanvas.getContext("2d");
+				cropCtx.drawImage(
+					canvas,
+					minX,
+					minY,
+					cropCanvas.width,
+					cropCanvas.height,
+					0,
+					0,
+					cropCanvas.width,
+					cropCanvas.height
+				);
+
+				resolve(cropCanvas.toDataURL("image/png"));
 			};
 
 			img.onerror = reject;
-			img.src = mode === "video" ? CALL_ICON_SVG_VIDEO : CALL_ICON_SVG_VOICE;
+			img.src = CALL_ICON_SOURCE[mode];
 		});
 	}
 
@@ -36,26 +109,14 @@
 			CALL_ICON_EXPORT[mode] = dataUrl;
 			return dataUrl;
 		}).catch(function () {
-			CALL_ICON_EXPORT[mode] = mode === "video" ? CALL_ICON_SVG_VIDEO : CALL_ICON_SVG_VOICE;
+			CALL_ICON_EXPORT[mode] = CALL_ICON_SOURCE[mode];
 			return CALL_ICON_EXPORT[mode];
 		});
 	}
 
 	function getCallIconSrc(mode) {
 		mode = mode === "video" ? "video" : "voice";
-		return CALL_ICON_EXPORT[mode] || (mode === "video" ? CALL_ICON_SVG_VIDEO : CALL_ICON_SVG_VOICE);
-	}
-
-	function padCallUnit(value) {
-		return value < 10 ? "0" + value : String(value);
-	}
-
-	function clamp(value, min, max) {
-		value = parseInt(value, 10);
-		if (isNaN(value)) value = min;
-		if (value < min) value = min;
-		if (value > max) value = max;
-		return value;
+		return CALL_ICON_EXPORT[mode] || CALL_ICON_SOURCE[mode];
 	}
 
 	function parseCallDurationParts(value) {
@@ -198,10 +259,6 @@
 		});
 	}
 
-	function refreshCallIcons(vm) {
-		patchExistingCallDialogs(vm);
-	}
-
 	function attachCallExtension(vm) {
 		if (!vm) return false;
 		if (vm.__callExtensionReady) return true;
@@ -210,7 +267,7 @@
 		patchExistingCallDialogs(vm);
 		vm.ensureCallIconsReady = function () {
 			return Promise.all([ensureCallIcon("voice"), ensureCallIcon("video")]).then(function () {
-				refreshCallIcons(vm);
+				patchExistingCallDialogs(vm);
 			});
 		};
 
@@ -218,24 +275,9 @@
 
 		var originalSave = vm.save;
 		vm.save = function () {
+			var self = this;
 			return this.ensureCallIconsReady().catch(function () { }).then(function () {
-				var svgIcons = document.querySelectorAll(".wechat-dialog-call-icon-svg");
-				var imgIcons = document.querySelectorAll(".wechat-dialog-call-icon-img");
-				svgIcons.forEach(function (node) {
-					node.style.display = "none";
-				});
-				imgIcons.forEach(function (node) {
-					node.style.display = "block";
-				});
-				setTimeout(function () {
-					svgIcons.forEach(function (node) {
-						node.style.display = "";
-					});
-					imgIcons.forEach(function (node) {
-						node.style.display = "";
-					});
-				}, 2200);
-				return originalSave.call(vm);
+				return originalSave.call(self);
 			});
 		};
 

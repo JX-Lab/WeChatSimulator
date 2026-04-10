@@ -2110,30 +2110,10 @@ fieldset[disabled] .radio-custom label {
 .wechat-dialog-call-icon {
     display: block;
     flex-shrink: 0;
-    color: #000;
-    margin-right: .22em
-}
-
-.wechat-dialog-call-icon-img {
-    display: none
-}
-
-.wechat-dialog-call-icon-video {
-    width: 1.24em;
-    height: .72em
-}
-
-.wechat-dialog-call-icon-voice {
-    width: 1.24em;
-    height: .46em
-}
-
-.phone-export-icons .wechat-dialog-call-icon-svg {
-    display: none
-}
-
-.phone-export-icons .wechat-dialog-call-icon-img {
-    display: block
+    width: 1.28em;
+    height: auto;
+    margin-right: .20em;
+    max-width: none
 }
 
 .wechat-dialog-call-text {
