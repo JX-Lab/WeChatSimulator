@@ -16,10 +16,19 @@
 			img.onload = function () {
 				var canvas = document.createElement("canvas");
 				var ctx = canvas.getContext("2d");
+				var cropCanvas;
+				var cropCtx;
 				var data;
 				var i;
 				var gray;
 				var alpha;
+				var x;
+				var y;
+				var minX = Infinity;
+				var minY = Infinity;
+				var maxX = -1;
+				var maxY = -1;
+				var p;
 
 				canvas.width = img.width;
 				canvas.height = img.height;
@@ -41,7 +50,41 @@
 				}
 
 				ctx.putImageData(data, 0, 0);
-				resolve(canvas.toDataURL("image/png"));
+
+				for (y = 0; y < canvas.height; y += 1) {
+					for (x = 0; x < canvas.width; x += 1) {
+						p = (y * canvas.width + x) * 4;
+						if (data.data[p + 3] > 24) {
+							if (x < minX) minX = x;
+							if (y < minY) minY = y;
+							if (x > maxX) maxX = x;
+							if (y > maxY) maxY = y;
+						}
+					}
+				}
+
+				if (maxX < minX || maxY < minY) {
+					resolve(canvas.toDataURL("image/png"));
+					return;
+				}
+
+				cropCanvas = document.createElement("canvas");
+				cropCanvas.width = maxX - minX + 1;
+				cropCanvas.height = maxY - minY + 1;
+				cropCtx = cropCanvas.getContext("2d");
+				cropCtx.drawImage(
+					canvas,
+					minX,
+					minY,
+					cropCanvas.width,
+					cropCanvas.height,
+					0,
+					0,
+					cropCanvas.width,
+					cropCanvas.height
+				);
+
+				resolve(cropCanvas.toDataURL("image/png"));
 			};
 			img.onerror = reject;
 			img.src = src;
@@ -245,7 +288,8 @@
 		vm.ensureCallIconsReady().catch(function () { });
 
 		var originalSave = vm.save;
-		vm.save = function () {
+
+		function runOriginalSaveWithExpandedChat() {
 			var phone = $("#phone");
 			var phoneBody = phone.find(".phone-body");
 			var phoneContent = phoneBody.find(".wechat-content");
@@ -276,26 +320,36 @@
 				phoneBody.scrollTop(originalScrollTop);
 			}
 
-			return this.ensureCallIconsReady().catch(function () { }).then(function () {
-				phone.addClass("phone-exporting-full");
-				phone.css("height", fullPhoneHeight + "px");
-				phoneBg.css("height", fullPhoneHeight + "px");
-				phoneWater.css("height", fullPhoneHeight + "px");
-				phoneBody.css({
-					top: topOffset + "px",
-					bottom: "auto",
-					height: contentHeight + "px",
-					overflow: "visible"
-				});
-				phoneBody.scrollTop(0);
-				phoneBottom.css({
-					top: topOffset + contentHeight + "px",
-					bottom: "auto"
-				});
-
-				setTimeout(restorePhone, 2200);
-				return originalSave.apply(vm, arguments);
+			phone.addClass("phone-exporting-full");
+			phone.css("height", fullPhoneHeight + "px");
+			phoneBg.css("height", fullPhoneHeight + "px");
+			phoneWater.css("height", fullPhoneHeight + "px");
+			phoneBody.css({
+				top: topOffset + "px",
+				bottom: "auto",
+				height: contentHeight + "px",
+				overflow: "visible"
 			});
+			phoneBody.scrollTop(0);
+			phoneBottom.css({
+				top: topOffset + contentHeight + "px",
+				bottom: "auto"
+			});
+
+			setTimeout(restorePhone, 2200);
+			return originalSave.call(vm);
+		}
+
+		vm.save = function () {
+			if (CALL_ICON_CACHE.voice && CALL_ICON_CACHE.video) {
+				return runOriginalSaveWithExpandedChat();
+			}
+
+			this.ensureCallIconsReady()
+				.catch(function () { })
+				.then(function () {
+					runOriginalSaveWithExpandedChat();
+				});
 		};
 
 		vm.addCallDialog = function (mode) {
