@@ -1,7 +1,7 @@
 (function () {
-	var CALL_ICON_SOURCE = {
-		voice: "static/app/images/wechat-call-voice-source.jpg",
-		video: "static/app/images/wechat-call-video-source.jpg"
+	var CALL_ICON_SVG = {
+		video: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 92'><path d='M14 24h86c10 0 18 8 18 18v8c0 10-8 18-18 18H14C4 68-4 60-4 50v-8c0-10 8-18 18-18Zm108 10 34-18v60l-34-18' fill='none' stroke='%23000' stroke-width='12' stroke-linejoin='round' stroke-linecap='round'/></svg>",
+		voice: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 92'><path d='M20 62c9-18 26-30 46-30h28c20 0 37 12 46 30' fill='none' stroke='%23000' stroke-width='12' stroke-linejoin='round' stroke-linecap='round'/></svg>"
 	};
 
 	var CALL_ICON_EXPORT = {
@@ -26,77 +26,19 @@
 			var img = new Image();
 			var canvas = document.createElement("canvas");
 			var ctx = canvas.getContext("2d");
-			var cropCanvas;
-			var cropCtx;
-			var data;
-			var i;
-			var gray;
-			var x;
-			var y;
-			var p;
-			var minX = Infinity;
-			var minY = Infinity;
-			var maxX = -1;
-			var maxY = -1;
+			var width = 640;
+			var height = mode === "video" ? 368 : 212;
 
 			img.onload = function () {
-				canvas.width = img.width;
-				canvas.height = img.height;
-				ctx.drawImage(img, 0, 0);
-				data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-				for (i = 0; i < data.data.length; i += 4) {
-					gray = (data.data[i] + data.data[i + 1] + data.data[i + 2]) / 3;
-					if (gray < 85) {
-						data.data[i + 3] = 0;
-					} else {
-						data.data[i] = 0;
-						data.data[i + 1] = 0;
-						data.data[i + 2] = 0;
-						data.data[i + 3] = Math.max(0, Math.min(255, Math.round((gray - 85) / 170 * 255)));
-					}
-				}
-
-				ctx.putImageData(data, 0, 0);
-
-				for (y = 0; y < canvas.height; y += 1) {
-					for (x = 0; x < canvas.width; x += 1) {
-						p = (y * canvas.width + x) * 4;
-						if (data.data[p + 3] > 20) {
-							if (x < minX) minX = x;
-							if (y < minY) minY = y;
-							if (x > maxX) maxX = x;
-							if (y > maxY) maxY = y;
-						}
-					}
-				}
-
-				if (maxX < minX || maxY < minY) {
-					resolve(canvas.toDataURL("image/png"));
-					return;
-				}
-
-				cropCanvas = document.createElement("canvas");
-				cropCanvas.width = maxX - minX + 1;
-				cropCanvas.height = maxY - minY + 1;
-				cropCtx = cropCanvas.getContext("2d");
-				cropCtx.drawImage(
-					canvas,
-					minX,
-					minY,
-					cropCanvas.width,
-					cropCanvas.height,
-					0,
-					0,
-					cropCanvas.width,
-					cropCanvas.height
-				);
-
-				resolve(cropCanvas.toDataURL("image/png"));
+				canvas.width = width;
+				canvas.height = height;
+				ctx.clearRect(0, 0, width, height);
+				ctx.drawImage(img, 0, 0, width, height);
+				resolve(canvas.toDataURL("image/png"));
 			};
 
 			img.onerror = reject;
-			img.src = CALL_ICON_SOURCE[mode];
+			img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(CALL_ICON_SVG[mode]);
 		});
 	}
 
@@ -109,7 +51,7 @@
 			CALL_ICON_EXPORT[mode] = dataUrl;
 			return dataUrl;
 		}).catch(function () {
-			CALL_ICON_EXPORT[mode] = CALL_ICON_SOURCE[mode];
+			CALL_ICON_EXPORT[mode] = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(CALL_ICON_SVG[mode]);
 			return CALL_ICON_EXPORT[mode];
 		});
 	}
