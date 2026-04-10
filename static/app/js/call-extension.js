@@ -9,7 +9,7 @@
 		video: null
 	};
 
-	function processSourceIcon(src) {
+	function processSourceIcon(src, mode) {
 		return new Promise(function (resolve, reject) {
 			var img = new Image();
 			img.crossOrigin = "anonymous";
@@ -29,6 +29,9 @@
 				var maxX = -1;
 				var maxY = -1;
 				var p;
+				var bgThreshold = mode === "voice" ? 135 : 120;
+				var alphaThreshold = mode === "voice" ? 56 : 72;
+				var alphaScaleBase = mode === "voice" ? 125 : 135;
 
 				canvas.width = img.width;
 				canvas.height = img.height;
@@ -37,15 +40,15 @@
 
 				for (i = 0; i < data.data.length; i += 4) {
 					gray = (data.data[i] + data.data[i + 1] + data.data[i + 2]) / 3;
-					if (gray < 120) {
+					if (gray < bgThreshold) {
 						data.data[i + 3] = 0;
 						continue;
 					}
 
-					alpha = Math.max(0, Math.min(255, Math.round((gray - 120) / 135 * 255)));
-					data.data[i] = 31;
-					data.data[i + 1] = 31;
-					data.data[i + 2] = 31;
+					alpha = Math.max(0, Math.min(255, Math.round((gray - bgThreshold) / alphaScaleBase * 255)));
+					data.data[i] = 0;
+					data.data[i + 1] = 0;
+					data.data[i + 2] = 0;
 					data.data[i + 3] = alpha;
 				}
 
@@ -54,7 +57,7 @@
 				for (y = 0; y < canvas.height; y += 1) {
 					for (x = 0; x < canvas.width; x += 1) {
 						p = (y * canvas.width + x) * 4;
-						if (data.data[p + 3] > 72) {
+						if (data.data[p + 3] > alphaThreshold) {
 							if (x < minX) minX = x;
 							if (y < minY) minY = y;
 							if (x > maxX) maxX = x;
@@ -102,7 +105,8 @@
 		CALL_ICON_PROMISES[mode] = processSourceIcon(
 			mode === "video"
 				? "static/app/images/wechat-call-video-source.jpg"
-				: "static/app/images/wechat-call-voice-source.jpg"
+				: "static/app/images/wechat-call-voice-source.jpg",
+			mode
 		).then(function (dataUrl) {
 			CALL_ICON_CACHE[mode] = dataUrl;
 			return dataUrl;
