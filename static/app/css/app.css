@@ -2114,14 +2114,26 @@ fieldset[disabled] .radio-custom label {
     margin-right: .22em
 }
 
+.wechat-dialog-call-icon-img {
+    display: none
+}
+
 .wechat-dialog-call-icon-video {
-    width: 1.08em;
-    height: .66em
+    width: 1.04em;
+    height: .60em
 }
 
 .wechat-dialog-call-icon-voice {
-    width: 1.08em;
-    height: .50em
+    width: 1.04em;
+    height: .34em
+}
+
+.phone-export-icons .wechat-dialog-call-icon-svg {
+    display: none
+}
+
+.phone-export-icons .wechat-dialog-call-icon-img {
+    display: block
 }
 
 .wechat-dialog-call-text {

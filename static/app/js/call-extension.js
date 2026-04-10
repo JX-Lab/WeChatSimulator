@@ -1,124 +1,15 @@
 (function () {
-	var CALL_ICON_CACHE = {
-		voice: null,
-		video: null
-	};
+	var CALL_ICON_IMAGE_VIDEO =
+		"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4.2 8.8h10.2a1.7 1.7 0 0 1 1.7 1.7v3a1.7 1.7 0 0 1-1.7 1.7H4.2a1.7 1.7 0 0 1-1.7-1.7v-3a1.7 1.7 0 0 1 1.7-1.7Zm11.8 1.4 4.1-2.3v8.2L16 13.8' fill='none' stroke='%23000' stroke-width='2.1' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E";
+	var CALL_ICON_IMAGE_VOICE =
+		"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5.2 15.2c1.15-2.2 3.45-3.55 5.95-3.55h1.7c2.5 0 4.8 1.35 5.95 3.55' fill='none' stroke='%23000' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E";
 
-	var CALL_ICON_PROMISES = {
-		voice: null,
-		video: null
-	};
-
-	function processSourceIcon(src, mode) {
-		return new Promise(function (resolve, reject) {
-			var img = new Image();
-			img.crossOrigin = "anonymous";
-			img.onload = function () {
-				var canvas = document.createElement("canvas");
-				var ctx = canvas.getContext("2d");
-				var cropCanvas;
-				var cropCtx;
-				var data;
-				var i;
-				var gray;
-				var alpha;
-				var x;
-				var y;
-				var minX = Infinity;
-				var minY = Infinity;
-				var maxX = -1;
-				var maxY = -1;
-				var p;
-				var bgThreshold = mode === "voice" ? 135 : 120;
-				var alphaThreshold = mode === "voice" ? 56 : 72;
-				var alphaScaleBase = mode === "voice" ? 125 : 135;
-
-				canvas.width = img.width;
-				canvas.height = img.height;
-				ctx.drawImage(img, 0, 0);
-				data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-				for (i = 0; i < data.data.length; i += 4) {
-					gray = (data.data[i] + data.data[i + 1] + data.data[i + 2]) / 3;
-					if (gray < bgThreshold) {
-						data.data[i + 3] = 0;
-						continue;
-					}
-
-					alpha = Math.max(0, Math.min(255, Math.round((gray - bgThreshold) / alphaScaleBase * 255)));
-					data.data[i] = 0;
-					data.data[i + 1] = 0;
-					data.data[i + 2] = 0;
-					data.data[i + 3] = alpha;
-				}
-
-				ctx.putImageData(data, 0, 0);
-
-				for (y = 0; y < canvas.height; y += 1) {
-					for (x = 0; x < canvas.width; x += 1) {
-						p = (y * canvas.width + x) * 4;
-						if (data.data[p + 3] > alphaThreshold) {
-							if (x < minX) minX = x;
-							if (y < minY) minY = y;
-							if (x > maxX) maxX = x;
-							if (y > maxY) maxY = y;
-						}
-					}
-				}
-
-				if (maxX < minX || maxY < minY) {
-					resolve(canvas.toDataURL("image/png"));
-					return;
-				}
-
-				cropCanvas = document.createElement("canvas");
-				cropCanvas.width = maxX - minX + 1;
-				cropCanvas.height = maxY - minY + 1;
-				cropCtx = cropCanvas.getContext("2d");
-				cropCtx.drawImage(
-					canvas,
-					minX,
-					minY,
-					cropCanvas.width,
-					cropCanvas.height,
-					0,
-					0,
-					cropCanvas.width,
-					cropCanvas.height
-				);
-
-				resolve(cropCanvas.toDataURL("image/png"));
-			};
-			img.onerror = reject;
-			img.src = src;
-		});
-	}
-
-	function ensureCallIcon(mode) {
-		mode = mode === "video" ? "video" : "voice";
-		if (CALL_ICON_CACHE[mode]) {
-			return Promise.resolve(CALL_ICON_CACHE[mode]);
-		}
-		if (CALL_ICON_PROMISES[mode]) {
-			return CALL_ICON_PROMISES[mode];
-		}
-		CALL_ICON_PROMISES[mode] = processSourceIcon(
-			mode === "video"
-				? "static/app/images/wechat-call-video-source.jpg"
-				: "static/app/images/wechat-call-voice-source.jpg",
-			mode
-		).then(function (dataUrl) {
-			CALL_ICON_CACHE[mode] = dataUrl;
-			return dataUrl;
-		});
-		return CALL_ICON_PROMISES[mode];
+	function ensureCallIcon() {
+		return Promise.resolve();
 	}
 
 	function getCallIconSrc(mode) {
-		mode = mode === "video" ? "video" : "voice";
-		return CALL_ICON_CACHE[mode] || (mode === "video"
-			? "static/app/images/wechat-call-video-source.jpg"
-			: "static/app/images/wechat-call-voice-source.jpg");
+		return mode === "video" ? CALL_ICON_IMAGE_VIDEO : CALL_ICON_IMAGE_VOICE;
 	}
 
 	function padCallUnit(value) {
@@ -290,6 +181,15 @@
 		};
 
 		vm.ensureCallIconsReady().catch(function () { });
+
+		var originalSave = vm.save;
+		vm.save = function () {
+			document.body.classList.add("phone-export-icons");
+			setTimeout(function () {
+				document.body.classList.remove("phone-export-icons");
+			}, 2200);
+			return originalSave.call(vm);
+		};
 
 		vm.addCallDialog = function (mode) {
 			var selectedUser = this.getSelectedUser();
