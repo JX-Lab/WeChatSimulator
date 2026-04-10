@@ -227,8 +227,11 @@
 											<select v-model="setting.dialog_call_status" class="form-control">
 												<option value="connected">已接通</option>
 												<option value="canceled">已取消</option>
+												<option value="peer_canceled">对方已取消</option>
 												<option value="rejected">已拒绝</option>
 												<option value="unanswered">无应答</option>
+												<option value="peer_unanswered">对方未接听</option>
+												<option value="callback_missed">未接听 点击回拨</option>
 												<option value="failed">连接失败</option>
 											</select>
 										</div>
@@ -249,6 +252,13 @@
 												<option v-for="n in 60" :value="n - 1">{{n - 1}}</option>
 											</select>
 											秒
+										</div>
+										<div class="view-set-item">
+											<span>红点提示：</span>
+											<label class="my-radio"><input type="radio"
+													v-model="setting.dialog_call_show_unread" value="1"> 显示</label>
+											<label class="my-radio"><input type="radio"
+													v-model="setting.dialog_call_show_unread" value="0" checked> 隐藏</label>
 										</div>
 										<div class="view-set-item">
 											<span>红包备注：</span>
@@ -371,32 +381,13 @@
 											</template>
 
 											<template v-if="dialog.type == 'call'">
-												<div
-													:class="['wechat-dialog-text', 'wechat-dialog-call', {'wechat-dialog-call-alert': (dialog.call_status || 'connected') != 'connected'}]">
-													<svg v-if="(dialog.call_mode || 'voice') == 'video'"
-														class="wechat-dialog-call-icon" viewBox="0 0 24 24"
-														aria-hidden="true">
-														<path d="M4.5 7.5A1.5 1.5 0 0 1 6 6h8a1.5 1.5 0 0 1 1.5 1.5v1.082l3.364-1.944A.75.75 0 0 1 20 7.287v9.426a.75.75 0 0 1-1.136.649L15.5 15.418V16.5A1.5 1.5 0 0 1 14 18H6a1.5 1.5 0 0 1-1.5-1.5v-9Z"
-															fill="none" stroke="currentColor" stroke-width="2.35"
-															stroke-linejoin="round" stroke-linecap="round" />
-													</svg>
-													<svg v-else class="wechat-dialog-call-icon" viewBox="0 0 24 24"
-														aria-hidden="true">
-														<path d="M7.75 5.25c.32-.32.82-.4 1.23-.18l2.11 1.12c.47.25.68.82.48 1.32l-.7 1.7c-.13.31-.06.67.18.91a11.87 11.87 0 0 0 3.83 3.83c.24.24.6.31.91.18l1.7-.7c.5-.2 1.07.01 1.32.48l1.12 2.11c.22.41.14.91-.18 1.23l-.96.96c-.78.78-1.93 1.08-2.98.76-2.12-.63-4.24-2.02-6.3-4.08-2.06-2.06-3.45-4.18-4.08-6.3-.32-1.05-.02-2.2.76-2.98l.96-.96Z"
-															fill="none" stroke="currentColor" stroke-width="2.15"
-															stroke-linejoin="round" stroke-linecap="round" />
-													</svg>
+												<div class="wechat-dialog-text wechat-dialog-call">
+													<i
+														:class="['wechat-dialog-call-icon', (dialog.call_mode || 'voice') == 'video' ? 'wechat-dialog-call-icon-video' : 'wechat-dialog-call-icon-voice']"></i>
 													<span class="wechat-dialog-call-text">
-														{{dialog.call_status_text || ((dialog.call_status ||
-														'connected') == 'connected' ? ('通话时长 ' +
-														(dialog.call_duration_text || '00:32')) :
-														((dialog.call_status || 'connected') == 'canceled' ?
-														(dialog.is_me ? '已取消' : '对方已取消') :
-														((dialog.call_status || 'connected') == 'rejected' ?
-														'已拒绝' : ((dialog.call_status || 'connected') ==
-														'unanswered' ? '无应答' : '连接失败'))))}}
+														{{dialog.call_status_text}}
 													</span>
-													<em v-if="!dialog.is_me && (dialog.call_status || 'connected') != 'connected'"></em>
+													<em v-if="!dialog.is_me && dialog.call_show_unread"></em>
 												</div>
 											</template>
 
