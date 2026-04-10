@@ -2108,16 +2108,11 @@ fieldset[disabled] .radio-custom label {
 
 .wechat-dialog-call-icon {
     width: auto;
-    height: 1.10em;
+    height: .78em;
     display: block;
     flex-shrink: 0;
-    margin-right: .24em;
+    margin-right: .18em;
     max-width: none
-}
-
-.phone-content .wechat-dialog-call-icon {
-    height: 1.28em;
-    margin-right: .26em
 }
 
 .wechat-dialog-call-text {
