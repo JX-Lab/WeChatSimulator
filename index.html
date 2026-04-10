@@ -382,8 +382,9 @@
 
 											<template v-if="dialog.type == 'call'">
 												<div class="wechat-dialog-text wechat-dialog-call">
-													<i
-														:class="['wechat-dialog-call-icon', (dialog.call_mode || 'voice') == 'video' ? 'wechat-dialog-call-icon-video' : 'wechat-dialog-call-icon-voice']"></i>
+													<img
+														:src="(dialog.call_mode || 'voice') == 'video' ? 'static/app/images/wechat-call-video.svg' : 'static/app/images/wechat-call-voice.svg'"
+														class="wechat-dialog-call-icon" alt="">
 													<span class="wechat-dialog-call-text">
 														{{dialog.call_status_text}}
 													</span>
