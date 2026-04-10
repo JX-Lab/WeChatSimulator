@@ -2115,6 +2115,10 @@ fieldset[disabled] .radio-custom label {
     max-width: none
 }
 
+.wechat-dialog-call-icon-voice {
+    height: .98em
+}
+
 .wechat-dialog-call-text {
     font-size: 1em;
     line-height: normal;

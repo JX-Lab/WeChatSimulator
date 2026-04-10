@@ -384,7 +384,7 @@
 												<div class="wechat-dialog-text wechat-dialog-call">
 													<img
 														:src="dialog.call_icon_src"
-														class="wechat-dialog-call-icon" alt="">
+														:class="['wechat-dialog-call-icon', {'wechat-dialog-call-icon-voice': (dialog.call_mode || 'voice') == 'voice'}]" alt="">
 													<span class="wechat-dialog-call-text">
 														{{dialog.call_status_text}}
 													</span>
