@@ -219,6 +219,18 @@
 													v-model="setting.dialog_voice_isread" value="0"> 否</label>
 										</div>
 										<div class="view-set-item">
+											<span>通话状态：</span>
+											<select v-model="setting.dialog_call_status" class="form-control">
+												<option value="connected">已接通</option>
+												<option value="missed">未接通</option>
+												<option value="canceled">已取消</option>
+											</select>
+											&nbsp;&nbsp;&nbsp;
+											<span>通话时长：</span>
+											<input v-model="setting.dialog_call_duration" type="text"
+												class="form-control" placeholder="00:32">
+										</div>
+										<div class="view-set-item">
 											<span>红包备注：</span>
 											<input v-model="setting.dialog_repacket_remark" type="text"
 												class="form-control">
@@ -241,6 +253,10 @@
 											<button @click="addVoiceDialog" class="btn btn-primary">添加语音对话</button>
 											<button @click="addRedpacketDialog" class="btn btn-primary">添加红包对话</button>
 											<button @click="addTransferDialog" class="btn btn-primary">添加转账对话</button>
+										</div>
+										<div class="btn-group">
+											<button @click="addCallDialog('voice')" class="btn btn-primary">添加语音通话</button>
+											<button @click="addCallDialog('video')" class="btn btn-primary">添加视频通话</button>
 										</div>
 									</div>
 									<button class="btn-clear" @click="cleanDialogs" href="javascript:;">清空聊天内容</button>
@@ -333,6 +349,36 @@
 													<div v-if="!dialog.is_me"
 														:style="{width: getVoiceLength(dialog.time) + 'px'}"></div>
 													<em v-if="!dialog.is_me && dialog.isread == '0'"></em>
+												</div>
+											</template>
+
+											<template v-if="dialog.type == 'call'">
+												<div
+													:class="['wechat-dialog-text', 'wechat-dialog-call', {'wechat-dialog-call-failed': (dialog.call_status || 'connected') != 'connected'}]">
+													<div class="wechat-dialog-call-icon-wrap">
+														<svg v-if="(dialog.call_mode || 'voice') == 'video'"
+															class="wechat-dialog-call-icon" viewBox="0 0 24 24"
+															aria-hidden="true">
+															<path fill="currentColor"
+																d="M15 8.5a1.5 1.5 0 0 1 1.5-1.5h1.086a1.5 1.5 0 0 1 .848.263l2.914 1.943A1.5 1.5 0 0 1 22 10.454v3.092a1.5 1.5 0 0 1-.652 1.248l-2.914 1.943a1.5 1.5 0 0 1-.848.263H16.5A1.5 1.5 0 0 1 15 15.5v-.5H5A2.5 2.5 0 0 1 2.5 12.5v-3A2.5 2.5 0 0 1 5 7h10v1.5Zm0 2V10H5.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5H15v-1.5Z" />
+														</svg>
+														<svg v-else class="wechat-dialog-call-icon" viewBox="0 0 24 24"
+															aria-hidden="true">
+															<path fill="currentColor"
+																d="M7.844 3.25a2 2 0 0 1 1.814 1.157l1.028 2.24a2 2 0 0 1-.328 2.17l-1.01 1.212a13.087 13.087 0 0 0 4.623 4.623l1.212-1.01a2 2 0 0 1 2.17-.328l2.24 1.028a2 2 0 0 1 1.157 1.814v2.094a2.5 2.5 0 0 1-2.5 2.5h-.75C10.596 20.75 3.25 13.404 3.25 4.5v-.75a2.5 2.5 0 0 1 2.5-2.5h2.094Z" />
+														</svg>
+													</div>
+													<div class="wechat-dialog-call-body">
+														<div class="wechat-dialog-call-main">
+															{{(dialog.call_mode || 'voice') == 'video' ? '视频通话' :
+															'语音通话'}}
+														</div>
+														<div class="wechat-dialog-call-sub">
+															{{(dialog.call_status || 'connected') == 'connected' ?
+															(dialog.call_duration || '00:32') : ((dialog.call_status ||
+															'connected') == 'canceled' ? '已取消' : '未接通')}}
+														</div>
+													</div>
 												</div>
 											</template>
 
@@ -560,6 +606,7 @@
 			</div>
 		</div>
 	</div>
+	<script type="text/javascript" src="static/app/js/call-extension.js"></script>
 </body>
 
 </html>
