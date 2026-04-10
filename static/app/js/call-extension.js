@@ -1,15 +1,49 @@
 (function () {
-	var CALL_ICON_IMAGE_VIDEO =
+	var CALL_ICON_SVG_VIDEO =
 		"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4.2 8.8h10.2a1.7 1.7 0 0 1 1.7 1.7v3a1.7 1.7 0 0 1-1.7 1.7H4.2a1.7 1.7 0 0 1-1.7-1.7v-3a1.7 1.7 0 0 1 1.7-1.7Zm11.8 1.4 4.1-2.3v8.2L16 13.8' fill='none' stroke='%23000' stroke-width='2.1' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E";
-	var CALL_ICON_IMAGE_VOICE =
+	var CALL_ICON_SVG_VOICE =
 		"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5.2 15.2c1.15-2.2 3.45-3.55 5.95-3.55h1.7c2.5 0 4.8 1.35 5.95 3.55' fill='none' stroke='%23000' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E";
+	var CALL_ICON_EXPORT = {
+		voice: null,
+		video: null
+	};
 
-	function ensureCallIcon() {
-		return Promise.resolve();
+	function buildExportCallIcon(mode) {
+		return new Promise(function (resolve, reject) {
+			var img = new Image();
+			var canvas = document.createElement("canvas");
+			var ctx = canvas.getContext("2d");
+
+			img.onload = function () {
+				canvas.width = 128;
+				canvas.height = 128;
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+				resolve(canvas.toDataURL("image/png"));
+			};
+
+			img.onerror = reject;
+			img.src = mode === "video" ? CALL_ICON_SVG_VIDEO : CALL_ICON_SVG_VOICE;
+		});
+	}
+
+	function ensureCallIcon(mode) {
+		mode = mode === "video" ? "video" : "voice";
+		if (CALL_ICON_EXPORT[mode]) {
+			return Promise.resolve(CALL_ICON_EXPORT[mode]);
+		}
+		return buildExportCallIcon(mode).then(function (dataUrl) {
+			CALL_ICON_EXPORT[mode] = dataUrl;
+			return dataUrl;
+		}).catch(function () {
+			CALL_ICON_EXPORT[mode] = mode === "video" ? CALL_ICON_SVG_VIDEO : CALL_ICON_SVG_VOICE;
+			return CALL_ICON_EXPORT[mode];
+		});
 	}
 
 	function getCallIconSrc(mode) {
-		return mode === "video" ? CALL_ICON_IMAGE_VIDEO : CALL_ICON_IMAGE_VOICE;
+		mode = mode === "video" ? "video" : "voice";
+		return CALL_ICON_EXPORT[mode] || (mode === "video" ? CALL_ICON_SVG_VIDEO : CALL_ICON_SVG_VOICE);
 	}
 
 	function padCallUnit(value) {
@@ -184,11 +218,13 @@
 
 		var originalSave = vm.save;
 		vm.save = function () {
-			document.body.classList.add("phone-export-icons");
-			setTimeout(function () {
-				document.body.classList.remove("phone-export-icons");
-			}, 2200);
-			return originalSave.call(vm);
+			return this.ensureCallIconsReady().catch(function () { }).then(function () {
+				document.body.classList.add("phone-export-icons");
+				setTimeout(function () {
+					document.body.classList.remove("phone-export-icons");
+				}, 2200);
+				return originalSave.call(vm);
+			});
 		};
 
 		vm.addCallDialog = function (mode) {
