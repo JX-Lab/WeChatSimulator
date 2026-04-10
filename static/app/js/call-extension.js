@@ -219,9 +219,21 @@
 		var originalSave = vm.save;
 		vm.save = function () {
 			return this.ensureCallIconsReady().catch(function () { }).then(function () {
-				document.body.classList.add("phone-export-icons");
+				var svgIcons = document.querySelectorAll(".wechat-dialog-call-icon-svg");
+				var imgIcons = document.querySelectorAll(".wechat-dialog-call-icon-img");
+				svgIcons.forEach(function (node) {
+					node.style.display = "none";
+				});
+				imgIcons.forEach(function (node) {
+					node.style.display = "block";
+				});
 				setTimeout(function () {
-					document.body.classList.remove("phone-export-icons");
+					svgIcons.forEach(function (node) {
+						node.style.display = "";
+					});
+					imgIcons.forEach(function (node) {
+						node.style.display = "";
+					});
 				}, 2200);
 				return originalSave.call(vm);
 			});
