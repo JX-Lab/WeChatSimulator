@@ -2115,13 +2115,13 @@ fieldset[disabled] .radio-custom label {
 }
 
 .wechat-dialog-call-icon-video {
-    width: .96em;
-    height: .58em
+    width: 1.08em;
+    height: .66em
 }
 
 .wechat-dialog-call-icon-voice {
-    width: .96em;
-    height: .42em
+    width: 1.08em;
+    height: .50em
 }
 
 .wechat-dialog-call-text {
