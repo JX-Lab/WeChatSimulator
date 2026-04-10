@@ -1,11 +1,46 @@
 (function () {
-	var CALL_ICON_VOICE =
+	var CALL_ICON_VOICE_PATH =
+		"M7.75 5.25c.32-.32.82-.4 1.23-.18l2.11 1.12c.47.25.68.82.48 1.32l-.7 1.7c-.13.31-.06.67.18.91a11.87 11.87 0 0 0 3.83 3.83c.24.24.6.31.91.18l1.7-.7c.5-.2 1.07.01 1.32.48l1.12 2.11c.22.41.14.91-.18 1.23l-.96.96c-.78.78-1.93 1.08-2.98.76-2.12-.63-4.24-2.02-6.3-4.08-2.06-2.06-3.45-4.18-4.08-6.3-.32-1.05-.02-2.2.76-2.98l.96-.96Z";
+	var CALL_ICON_VIDEO_PATH =
+		"M4.5 7.5A1.5 1.5 0 0 1 6 6h8a1.5 1.5 0 0 1 1.5 1.5v1.082l3.364-1.944A.75.75 0 0 1 20 7.287v9.426a.75.75 0 0 1-1.136.649L15.5 15.418V16.5A1.5 1.5 0 0 1 14 18H6a1.5 1.5 0 0 1-1.5-1.5v-9Z";
+	var CALL_ICON_VOICE_FALLBACK =
 		"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7.75 5.25c.32-.32.82-.4 1.23-.18l2.11 1.12c.47.25.68.82.48 1.32l-.7 1.7c-.13.31-.06.67.18.91a11.87 11.87 0 0 0 3.83 3.83c.24.24.6.31.91.18l1.7-.7c.5-.2 1.07.01 1.32.48l1.12 2.11c.22.41.14.91-.18 1.23l-.96.96c-.78.78-1.93 1.08-2.98.76-2.12-.63-4.24-2.02-6.3-4.08-2.06-2.06-3.45-4.18-4.08-6.3-.32-1.05-.02-2.2.76-2.98l.96-.96Z' fill='none' stroke='%231f1f1f' stroke-width='2.15' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E";
-	var CALL_ICON_VIDEO =
+	var CALL_ICON_VIDEO_FALLBACK =
 		"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4.5 7.5A1.5 1.5 0 0 1 6 6h8a1.5 1.5 0 0 1 1.5 1.5v1.082l3.364-1.944A.75.75 0 0 1 20 7.287v9.426a.75.75 0 0 1-1.136.649L15.5 15.418V16.5A1.5 1.5 0 0 1 14 18H6a1.5 1.5 0 0 1-1.5-1.5v-9Z' fill='none' stroke='%231f1f1f' stroke-width='2.35' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E";
+	var CALL_ICON_CACHE = {};
+
+	function buildCallIconDataUrl(mode) {
+		var canvas = document.createElement("canvas");
+		var ctx = canvas.getContext("2d");
+		var scale = 4;
+		var pathString = mode === "video" ? CALL_ICON_VIDEO_PATH : CALL_ICON_VOICE_PATH;
+		var strokeWidth = mode === "video" ? 2.35 : 2.15;
+		var path;
+
+		canvas.width = 96;
+		canvas.height = 96;
+		ctx.scale(scale, scale);
+		ctx.strokeStyle = "#1f1f1f";
+		ctx.lineWidth = strokeWidth;
+		ctx.lineCap = "round";
+		ctx.lineJoin = "round";
+
+		if (typeof Path2D === "undefined") {
+			return mode === "video" ? CALL_ICON_VIDEO_FALLBACK : CALL_ICON_VOICE_FALLBACK;
+		}
+
+		path = new Path2D(pathString);
+		ctx.stroke(path);
+
+		return canvas.toDataURL("image/png");
+	}
 
 	function getCallIconSrc(mode) {
-		return mode === "video" ? CALL_ICON_VIDEO : CALL_ICON_VOICE;
+		mode = mode === "video" ? "video" : "voice";
+		if (!CALL_ICON_CACHE[mode]) {
+			CALL_ICON_CACHE[mode] = buildCallIconDataUrl(mode);
+		}
+		return CALL_ICON_CACHE[mode];
 	}
 
 	function padCallUnit(value) {
